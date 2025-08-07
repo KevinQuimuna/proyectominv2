@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Estimación Edad y Género</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, sans-serif;
+            background: linear-gradient(135deg, #f4f6f8, #e1e4e8);
+            color: #2c2c2c;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+
+        header {
+            background-color: #1f2c3d;
+            color: white;
+            padding: 25px 40px;
+            text-align: center;
+            font-size: 2.1rem;
+            font-weight: bold;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+        }
+
+        main {
+            flex: 1;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            align-items: flex-start;
+            gap: 30px;
+            padding: 40px 5vw;
+            max-width: 100%;
+        }
+
+        .card {
+            background-color: #ffffff;
+            padding: 30px 25px;
+            border-radius: 18px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
+            transition: transform 0.25s ease, box-shadow 0.25s ease;
+            width: 350px;
+            max-width: 100%;
+            flex: 0 0 auto;
+        }
+
+        .card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 28px rgba(0, 0, 0, 0.1);
+        }
+
+        .card h2 {
+            font-size: 1.4rem;
+            margin-bottom: 20px;
+            color: #1f2c3d;
+            text-align: center;
+        }
+
+        input[type="file"],
+        input[type="submit"],
+        button {
+            display: block;
+            width: 100%;
+            margin-bottom: 20px;
+            font-size: 1rem;
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+        }
+
+        input[type="file"] {
+            border: 1px solid #ccc;
+            background-color: #f7f9fa;
+        }
+
+        input[type="submit"],
+        button {
+            background-color: #2c3e50;
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        input[type="submit"]:hover,
+        button:hover {
+            background-color: #1a252f;
+        }
+
+        video {
+            border-radius: 10px;
+            width: 100%;
+            margin-bottom: 10px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+        }
+
+        .result p {
+            font-size: 1.2rem;
+            color: #2c2c2c;
+            margin-bottom: 15px;
+            text-align: center;
+            font-weight: bold;
+        }
+
+        .result img {
+            max-width: 100%;
+            border-radius: 10px;
+            margin-top: 15px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+        }
+
+        .error {
+            margin-top: 15px;
+            color: #a94442;
+            background: #f2dede;
+            padding: 12px 16px;
+            border-radius: 8px;
+            font-weight: 600;
+            text-align: center;
+            box-shadow: 0 3px 8px rgba(0, 0, 0, 0.05);
+        }
+
+        .camera-info {
+            background: #e8f4f8;
+            color: #2c5aa0;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            text-align: center;
+            font-size: 0.9rem;
+        }
+
+        footer {
+            background-color: #1f2c3d;
+            color: #ddd;
+            text-align: center;
+            padding: 18px 10px;
+            font-size: 0.9rem;
+            margin-top: auto;
+        }
+
+        footer span {
+            color: #999;
+        }
+
+        canvas {
+            display: none;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            margin: 10px 0;
+            color: #666;
+        }
+
+        .loading.active {
+            display: block;
+        }
+
+        @media (max-width: 1100px) {
+            main {
+                flex-direction: column;
+                align-items: center;
+            }
+
+            .card {
+                width: 90%;
+                max-width: 500px;
+            }
+
+            header {
+                font-size: 1.8rem;
+                padding: 20px 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        Estimación de Edad y Género
+    </header>
+
+    <main>
+        <!-- Subir Imagen -->
+        <div class="card">
+            <h2>📁 Subir Imagen</h2>
+            <form action="/" method="POST" enctype="multipart/form-data" onsubmit="showLoading()">
+                <input type="file" name="image" accept="image/*" required />
+                <input type="submit" value="🔍 Analizar Imagen" />
+                <div class="loading" id="loading">Procesando imagen...</div>
+            </form>
+            {% if error %}
+                <div class="error">{{ error }}</div>
+            {% endif %}
+        </div>
+
+        <!-- Usar Cámara (con detección de soporte) -->
+        <div class="card" id="cameraCard">
+            <h2>📸 Usar Cámara</h2>
+            <div class="camera-info">
+                <strong>Nota:</strong> La cámara funciona mejor en dispositivos locales. En algunos servidores web puede no estar disponible por seguridad.
+            </div>
+            <video id="video" autoplay playsinline style="display: none;"></video>
+            <button onclick="startCamera()" id="startBtn">🎥 Iniciar Cámara</button>
+            <button onclick="capture()" id="captureBtn" style="display: none;">📸 Capturar Foto</button>
+            <form id="cameraForm" method="POST" action="/camera" enctype="multipart/form-data" style="display: none;">
+                <input type="hidden" name="imageData" id="imageData">
+                <input type="submit" value="🔍 Analizar Captura" />
+            </form>
+            <canvas id="canvas"></canvas>
+            <div id="cameraError" class="error" style="display: none;"></div>
+        </div>
+
+        <!-- Resultado -->
+        {% if result %}
+            <div class="card result">
+                <h2>📊 Resultado del Análisis</h2>
+                <p>{{ result }}</p>
+                {% if filename %}
+                    <img src="{{ url_for('static', filename='uploads/' + filename) }}" alt="Imagen analizada" />
+                {% endif %}
+            </div>
+        {% endif %}
+    </main>
+
+    <footer>
+        © 2025 Proyecto de Minería — <span>Desarrollado con ♥ usando OpenCV</span>
+    </footer>
+
+    <script>
+        const video = document.getElementById('video');
+        const canvas = document.getElementById('canvas');
+        const imageDataInput = document.getElementById('imageData');
+        const startBtn = document.getElementById('startBtn');
+        const captureBtn = document.getElementById('captureBtn');
+        const cameraForm = document.getElementById('cameraForm');
+        const cameraError = document.getElementById('cameraError');
+        let stream;
+
+        function showLoading() {
+            document.getElementById('loading').classList.add('active');
+        }
+
+        async function startCamera() {
+            try {
+                // Verificar si getUserMedia está disponible
+                if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                    throw new Error('Tu navegador no soporta acceso a la cámara');
+                }
+
+                stream = await navigator.mediaDevices.getUserMedia({ 
+                    video: { 
+                        width: { ideal: 640 }, 
+                        height: { ideal: 480 } 
+                    } 
+                });
+                
+                video.srcObject = stream;
+                video.style.display = 'block';
+                startBtn.style.display = 'none';
+                captureBtn.style.display = 'block';
+                cameraError.style.display = 'none';
+                
+                console.log("Cámara iniciada exitosamente");
+                
+            } catch (err) {
+                console.error("Error al acceder a la cámara:", err);
+                let errorMessage = "No se pudo acceder a la cámara: ";
+                
+                if (err.name === 'NotAllowedError') {
+                    errorMessage += "Debes permitir el acceso a la cámara.";
+                } else if (err.name === 'NotFoundError') {
+                    errorMessage += "No se encontró una cámara conectada.";
+                } else if (err.name === 'NotReadableError') {
+                    errorMessage += "La cámara está en uso por otra aplicación.";
+                } else if (err.name === 'OverconstrainedError') {
+                    errorMessage += "No se pudieron satisfacer las configuraciones de la cámara.";
+                } else {
+                    errorMessage += err.message || "Error desconocido.";
+                }
+                
+                cameraError.textContent = errorMessage;
+                cameraError.style.display = 'block';
+                startBtn.textContent = "🔄 Reintentar Cámara";
+            }
+        }
+
+        function capture() {
+            if (!stream || !video.videoWidth) {
+                alert("La cámara no está lista. Por favor, espera un momento.");
+                return;
+            }
+            
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            const context = canvas.getContext('2d');
+            context.drawImage(video, 0, 0, canvas.width, canvas.height);
+            
+            const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
+            imageDataInput.value = dataUrl;
+            cameraForm.style.display = 'block';
+            
+            console.log("Imagen capturada exitosamente");
+        }
+
+        // Detener la cámara al cerrar la página
+        window.addEventListener('beforeunload', () => {
+            if (stream) {
+                stream.getTracks().forEach(track => track.stop());
+            }
+        });
+
+        // Auto-detectar si estamos en HTTPS para mostrar info sobre cámara
+        if (location.protocol !== 'https:' && location.hostname !== 'localhost') {
+            document.querySelector('.camera-info').innerHTML = 
+                '<strong>⚠️ Atención:</strong> La cámara requiere HTTPS para funcionar. Usa la opción de subir archivo.';
+        }
+    </script>
+</body>
+</html>
